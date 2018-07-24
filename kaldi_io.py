@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # Copyright 2014-2016  Brno University of Technology (author: Karel Vesely)
 # Licensed under the Apache License, Version 2.0 (the "License")
 
@@ -106,13 +108,13 @@ def read_key(fd):
   """
   key = ''
   while 1:
-    char = fd.read(1).decode()
+    char = fd.read(1).decode("latin1")
     if char == '' : break
     if char == ' ' : break
     key += char
   key = key.strip()
   if key == '': return None # end of file,
-  assert(re.match('^[\.\/a-zA-Z0-9_-]+$',key) != None) # check format,
+  assert(re.match('^\S+$',key) != None) # check format (no whitespace!)
   return key
 
 
@@ -184,7 +186,7 @@ def write_vec_int(file_or_fd, v, key=''):
   fd = open_or_fd(file_or_fd, mode='wb')
   if sys.version_info[0] == 3: assert(fd.mode == 'wb')
   try:
-    if key != '' : fd.write((key+' ').encode()) # ark-files have keys (utterance-id),
+    if key != '' : fd.write((key+' ').encode("latin1")) # ark-files have keys (utterance-id),
     fd.write('\0B'.encode()) # we write binary!
     # dim,
     fd.write('\4'.encode()) # int32 type,
@@ -292,7 +294,7 @@ def write_vec_flt(file_or_fd, v, key=''):
   fd = open_or_fd(file_or_fd, mode='wb')
   if sys.version_info[0] == 3: assert(fd.mode == 'wb')
   try:
-    if key != '' : fd.write((key+' ').encode()) # ark-files have keys (utterance-id),
+    if key != '' : fd.write((key+' ').encode("latin1")) # ark-files have keys (utterance-id),
     fd.write('\0B'.encode()) # we write binary!
     # Data-type,
     if v.dtype == 'float32': fd.write('FV '.encode())
@@ -472,7 +474,7 @@ def write_mat(file_or_fd, m, key=''):
   fd = open_or_fd(file_or_fd, mode='wb')
   if sys.version_info[0] == 3: assert(fd.mode == 'wb')
   try:
-    if key != '' : fd.write((key+' ').encode()) # ark-files have keys (utterance-id),
+    if key != '' : fd.write((key+' ').encode("latin1")) # ark-files have keys (utterance-id),
     fd.write('\0B'.encode()) # we write binary!
     # Data-type,
     if m.dtype == 'float32': fd.write('FM '.encode())
