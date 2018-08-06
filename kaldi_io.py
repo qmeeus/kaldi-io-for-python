@@ -426,8 +426,8 @@ def _read_compressed_mat(fd, format):
   def uint8_to_float_v2(vec, p0, p25, p75, p100):
     # Split the vector by masks,
     mask_0_64 = (vec <= 64);
-    mask_65_192 = np.all([vec>64, vec<=192], axis=0);
     mask_193_255 = (vec > 192);
+    mask_65_192 = (~(mask_0_64 | mask_193_255));
     # Sanity check (useful but slow...),
     # assert(len(vec) == np.sum(np.hstack([mask_0_64,mask_65_192,mask_193_255])))
     # assert(len(vec) == np.sum(np.any([mask_0_64,mask_65_192,mask_193_255], axis=0)))
