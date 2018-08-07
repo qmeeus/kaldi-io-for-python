@@ -418,38 +418,27 @@ def _read_compressed_mat(fd, format):
   global_header = np.dtype([('minvalue','float32'),('range','float32'),('num_rows','int32'),('num_cols','int32')]) # member '.format' is not written,
   per_col_header = np.dtype([('percentile_0','uint16'),('percentile_25','uint16'),('percentile_75','uint16'),('percentile_100','uint16')])
 
-  # Mapping for percentiles in col-headers,
-  def uint16_to_float(value, min, range):
-    return np.float32(min + range * 1.52590218966964e-05 * value)
-
-  # Mapping for matrix elements,
-  def uint8_to_float_v2(vec, p0, p25, p75, p100):
-    # Split the vector by masks,
-    mask_0_64 = (vec <= 64);
-    mask_193_255 = (vec > 192);
-    mask_65_192 = (~(mask_0_64 | mask_193_255));
-    # Sanity check (useful but slow...),
-    # assert(len(vec) == np.sum(np.hstack([mask_0_64,mask_65_192,mask_193_255])))
-    # assert(len(vec) == np.sum(np.any([mask_0_64,mask_65_192,mask_193_255], axis=0)))
-    # Build the float vector,
-    ans = np.empty(len(vec), dtype='float32')
-    ans[mask_0_64] = p0 + (p25 - p0) / 64. * vec[mask_0_64]
-    ans[mask_65_192] = p25 + (p75 - p25) / 128. * (vec[mask_65_192] - 64)
-    ans[mask_193_255] = p75 + (p100 - p75) / 63. * (vec[mask_193_255] - 192)
-    return ans
-
   # Read global header,
   globmin, globrange, rows, cols = np.frombuffer(fd.read(16), dtype=global_header, count=1)[0]
 
   # The data is structed as [Colheader, ... , Colheader, Data, Data , .... ]
   #                         {           cols           }{     size         }
   col_headers = np.frombuffer(fd.read(cols*8), dtype=per_col_header, count=cols)
+  col_headers = np.array([np.array([x for x in y]) * globrange * 1.52590218966964e-05 + globmin for y in col_headers], dtype=np.float32)
   data = np.reshape(np.frombuffer(fd.read(cols*rows), dtype='uint8', count=cols*rows), newshape=(cols,rows)) # stored as col-major,
 
-  mat = np.empty((cols,rows), dtype='float32')
-  for i, col_header in enumerate(col_headers):
-    col_header_flt = [ uint16_to_float(percentile, globmin, globrange) for percentile in col_header ]
-    mat[i] = uint8_to_float_v2(data[i], *col_header_flt)
+  mat = np.zeros((cols,rows), dtype='float32')
+  p0 = col_headers[:, 0].reshape(-1, 1)
+  p25 = col_headers[:, 1].reshape(-1, 1)
+  p75 = col_headers[:, 2].reshape(-1, 1)
+  p100 = col_headers[:, 3].reshape(-1, 1)
+  mask_0_64 = (data <= 64)
+  mask_193_255 = (data > 192)
+  mask_65_192 = (~(mask_0_64 | mask_193_255))
+
+  mat += (p0  + (p25 - p0) / 64. * data) * mask_0_64.astype(np.float32)
+  mat += (p25 + (p75 - p25) / 128. * (data - 64)) * mask_65_192.astype(np.float32)
+  mat += (p75 + (p100 - p75) / 63. * (data - 192)) * mask_193_255.astype(np.float32)
 
   return mat.T # transpose! col-major -> row-major,
 
