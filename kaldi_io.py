@@ -365,7 +365,7 @@ def _get_mat_scp_range(rxfile):
   and a tuple of slice objects is returned
   rxfile: file descriptor for an ark file that optionally contains an offset or/and a matrix range
   """
-  range_split = re.split('(\[(?:(?:(?:[0-9]+:[0-9]+)(?:,(?:[0-9]+:[0-9]+)?)?)|(?:,[0-9]+:[0-9]+))])\s*', rxfile)
+  range_split = re.search('(\[(?:(?:(?:[0-9]+:[0-9]+)(?:,(?:[0-9]+:[0-9]+)?)?)|(?:,[0-9]+:[0-9]+))]\s*)', rxfile).groups()
   if len(range_split) > 2:
     raise BadInputFormat('Filename "%s" contains more than one matrix range specifier or the range specifier is '
                          'not at the end of the filename.' % rxfile)
