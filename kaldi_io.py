@@ -378,7 +378,8 @@ def _get_mat_scp_range(rxfile):
       for drange in ranges:
         indices = drange.split(':', 1)
         if len(indices) == 2:
-          range.append(slice(int(indices[0]), int(indices[1])))
+          # +1 because the second index is inclusive in kaldi but exclusive in python and numpy
+          range.append(slice(int(indices[0]), 1 + int(indices[1])))
         else:
           range.append(slice(None))
       return rxfile, tuple(range)
