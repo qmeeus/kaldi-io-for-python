@@ -365,21 +365,23 @@ def _get_mat_scp_range(rxfile):
   and a tuple of slice objects is returned
   rxfile: file descriptor for an ark file that optionally contains an offset or/and a matrix range
   """
-  range_split = re.search('(\[(?:(?:(?:[0-9]+:[0-9]+)(?:,(?:[0-9]+:[0-9]+)?)?)|(?:,[0-9]+:[0-9]+))]\s*)', rxfile).groups()
-  if len(range_split) > 2:
-    raise BadInputFormat('Filename "%s" contains more than one matrix range specifier or the range specifier is '
-                         'not at the end of the filename.' % rxfile)
-  if len(range_split) == 2:
-    range = []
-    (rxfile, range_str) = range_split
-    ranges = range_str.split(',', 1)
-    for drange in ranges:
-      indices = drange.split(':', 1)
-      if len(indices) == 2:
-        range.append(slice(int(indices[0]), int(indices[1])))
-      else:
-        range.append(slice(None))
-    return rxfile, tuple(range)
+  search_res = re.search('(.+)(\[(?:(?:(?:[0-9]+:[0-9]+)(?:,(?:[0-9]+:[0-9]+)?)?)|(?:,[0-9]+:[0-9]+))]\s*)', rxfile)
+  if search_res is not None:
+    range_split = search_res.groups()
+    if len(range_split) > 2:
+      raise BadInputFormat('Filename "%s" contains more than one matrix range specifier or the range specifier is '
+                           'not at the end of the filename.' % rxfile)
+    if len(range_split) == 2:
+      range = []
+      (rxfile, range_str) = range_split
+      ranges = range_str.split(',', 1)
+      for drange in ranges:
+        indices = drange.split(':', 1)
+        if len(indices) == 2:
+          range.append(slice(int(indices[0]), int(indices[1])))
+        else:
+          range.append(slice(None))
+      return rxfile, tuple(range)
   return rxfile, None
 
 def read_mat(file_or_fd):
