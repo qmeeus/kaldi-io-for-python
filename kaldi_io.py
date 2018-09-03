@@ -368,7 +368,7 @@ def _get_mat_scp_range(rxfile):
   range_split = re.split('(\[(?:(?:(?:[0-9]+:[0-9]+)(?:,(?:[0-9]+:[0-9]+)?)?)|(?:,[0-9]+:[0-9]+))])\s*', rxfile)
   if len(range_split) > 2:
     raise BadInputFormat('Filename "%s" contains more than one matrix range specifier or the range specifier is '
-                         'not at the end of the filename.')
+                         'not at the end of the filename.' % rxfile)
   if len(range_split) == 2:
     range = []
     (rxfile, range_str) = range_split
