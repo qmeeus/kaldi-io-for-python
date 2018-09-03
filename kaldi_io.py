@@ -329,7 +329,10 @@ def read_mat_scp(file_or_fd):
   try:
     for line in fd:
       (key,rxfile) = line.decode().split(' ')
+      (rxfile,range) = _get_mat_scp_range(rxfile)
       mat = read_mat(rxfile)
+      if range is not None:
+        mat = (mat[range]).copy()
       yield key, mat
   finally:
     if fd is not file_or_fd : fd.close()
@@ -355,6 +358,29 @@ def read_mat_ark(file_or_fd):
       key = read_key(fd)
   finally:
     if fd is not file_or_fd : fd.close()
+
+def _get_mat_scp_range(rxfile):
+  """ (stripped_rxfile, range) = _get_mat_scp_range(rxfile)
+  Returns (rxfile, None) if rxfile does not contain a matrix range. Otherwise a tuple containing the stripped rxfile
+  and a tuple of slice objects is returned
+  rxfile: file descriptor for an ark file that optionally contains an offset or/and a matrix range
+  """
+  range_split = re.split('(\[(?:(?:(?:[0-9]+:[0-9]+)(?:,(?:[0-9]+:[0-9]+)?)?)|(?:,[0-9]+:[0-9]+))])\s*', rxfile)
+  if len(range_split) > 2:
+    raise BadInputFormat('Filename "%s" contains more than one matrix range specifier or the range specifier is '
+                         'not at the end of the filename.')
+  if len(range_split) == 2:
+    range = []
+    (rxfile, range_str) = range_split
+    ranges = range_str.split(',', 1)
+    for drange in ranges:
+      indices = drange.split(':', 1)
+      if len(indices) == 2:
+        range.append(slice(int(indices[0]), int(indices[1])))
+      else:
+        range.append(slice(None))
+    return rxfile, tuple(range)
+  return rxfile, None
 
 def read_mat(file_or_fd):
   """ [mat] = read_mat(file_or_fd)
