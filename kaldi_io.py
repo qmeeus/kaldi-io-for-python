@@ -249,22 +249,8 @@ def read_vec_flt(file_or_fd):
   fd = open_or_fd(file_or_fd)
   binary = fd.read(2).decode()
   if binary == '\0B': # binary flag
-    # Data type,
-    header = fd.read(3).decode()
-    if header == 'FV ': sample_size = 4 # floats
-    elif header == 'DV ': sample_size = 8 # doubles
-    else: raise UnknownVectorHeader("The header contained '%s'" % header)
-    assert(sample_size > 0)
-    # Dimension,
-    assert(fd.read(1).decode() == '\4'); # int-size
-    vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # vector dim
-    # Read whole vector,
-    buf = fd.read(vec_size * sample_size)
-    if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32')
-    elif sample_size == 8 : ans = np.frombuffer(buf, dtype='float64')
-    else : raise BadSampleSize
-    return ans
-  else: # ascii,
+    return _read_vec_flt_binary(fd)
+  else:  # ascii,
     arr = (binary + fd.readline().decode()).strip().split()
     try:
       arr.remove('['); arr.remove(']') # optionally
@@ -273,6 +259,23 @@ def read_vec_flt(file_or_fd):
     ans = np.array(arr, dtype=float)
   if fd is not file_or_fd : fd.close() # cleanup
   return ans
+
+def _read_vec_flt_binary(fd):
+  header = fd.read(3).decode()
+  if header == 'FV ' : sample_size = 4 # floats
+  elif header == 'DV ' : sample_size = 8 # doubles
+  else : raise UnknownVectorHeader("The header contained '%s'" % header)
+  assert (sample_size > 0)
+  # Dimension,
+  assert (fd.read(1).decode() == '\4'); # int-size
+  vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # vector dim
+  # Read whole vector,
+  buf = fd.read(vec_size * sample_size)
+  if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32')
+  elif sample_size == 8 : ans = np.frombuffer(buf, dtype='float64')
+  else : raise BadSampleSize
+  return ans
+
 
 # Writing,
 def write_vec_flt(file_or_fd, v, key=''):
