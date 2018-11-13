@@ -152,6 +152,8 @@ def read_vec_int(file_or_fd):
   if binary == '\0B': # binary flag
     assert(fd.read(1).decode() == '\4'); # int-size
     vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # vector dim
+    if vec_size == 0:
+      return np.array([], dtype='int32')
     # Elements from int32 vector are sored in tuples: (sizeof(int32), value),
     vec = np.frombuffer(fd.read(vec_size*5), dtype=[('size','int8'),('value','int32')], count=vec_size)
     assert(vec[0]['size'] == 4) # int32 size,
@@ -269,6 +271,8 @@ def _read_vec_flt_binary(fd):
   # Dimension,
   assert (fd.read(1).decode() == '\4'); # int-size
   vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # vector dim
+  if vec_size == 0:
+    return np.array([], dtype='int32')
   # Read whole vector,
   buf = fd.read(vec_size * sample_size)
   if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32')
