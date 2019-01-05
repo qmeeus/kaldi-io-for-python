@@ -272,7 +272,7 @@ def _read_vec_flt_binary(fd):
   assert (fd.read(1).decode() == '\4'); # int-size
   vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # vector dim
   if vec_size == 0:
-    return np.array([], dtype='int32')
+    return np.array([], dtype='float32')
   # Read whole vector,
   buf = fd.read(vec_size * sample_size)
   if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32')
