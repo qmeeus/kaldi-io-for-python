@@ -495,6 +495,39 @@ def read_cnet_ark(file_or_fd):
   """ Alias of function 'read_post_ark()', 'cnet' = confusion network """
   return read_post_ark(file_or_fd)
 
+def read_post_rxspec(file_):
+  """ adaptor to read both 'ark:...' and 'scp:...' inputs of posteriors,
+  """
+  if file_.startswith("ark:"):
+      return read_post_ark(file_)
+  elif file_.startswith("scp:"):
+      return read_post_scp(file_)
+  else:
+      print("unsupported intput type: %s" % file_)
+      print("it should begint with 'ark:' or 'scp:'")
+      sys.exit(1)
+
+def read_post_scp(file_or_fd):
+  """ generator(key,post) = read_post_scp(file_or_fd)
+   Returns generator of (key,post) tuples, read according to kaldi scp.
+   file_or_fd : scp, gzipped scp, pipe or opened file descriptor.
+
+   Iterate the scp:
+   for key,post in kaldi_io.read_post_scp(file):
+     ...
+
+   Read scp to a 'dictionary':
+   d = { key:post for key,post in kaldi_io.read_post_scp(file) }
+  """
+  fd = open_or_fd(file_or_fd)
+  try:
+    for line in fd:
+      (key,rxfile) = line.decode().split(' ')
+      post = read_post(rxfile)
+      yield key, post
+  finally:
+    if fd is not file_or_fd : fd.close()
+
 def read_post_ark(file_or_fd):
   """ generator(key,vec<vec<int,float>>) = read_post_ark(file)
    Returns generator of (key,posterior) tuples, read from ark file.
