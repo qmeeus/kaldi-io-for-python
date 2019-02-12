@@ -37,10 +37,15 @@ with kaldi_io.open_or_fd(ark_scp_output,'wb') as f:
 
 
 #### Install
-- run `git clone https://github.com/vesis84/kaldi-io-for-python.git <kaldi-io-dir>`
-- add `PYTHONPATH=${PYTHONPATH}:<kaldi-io-dir>` to `$HOME/.bashrc`
-- now the `import kaldi_io` will work from any location
-- or simply use `python setup.py install` (default python), alternatively `python{2|3} setup.py install`,
+- from pypi: `python -m pip --user install kaldi_io`
+- from sources:
+  - `git clone https://github.com/vesis84/kaldi-io-for-python.git <kaldi-io-dir>`
+  - `python setup.py install` (default python)
+- for local development use: `PYTHONPATH=${PYTHONPATH}:<kaldi-io-dir>` in `$HOME/.bashrc`
+
+Note it is recommended to set KALDI_ROOT in your `$HOME/.bashrc` as
+`export KALDI_ROOT=<some_kaldi_dir>`, so you can read/write using 
+pipes with kaldi binaries.
 
 
 #### License
