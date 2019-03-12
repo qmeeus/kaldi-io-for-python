@@ -109,6 +109,8 @@ def read_key(fd):
     """ [key] = read_key(fd)
      Read the utterance-key from the opened ark/stream descriptor 'fd'.
     """
+    assert('b' in fd.mode), "Error: 'fd' was opened in text mode (in python3 use sys.stdin.buffer)"
+
     key = ''
     while 1:
         char = fd.read(1).decode("latin1")
@@ -188,6 +190,8 @@ def write_vec_int(file_or_fd, v, key=''):
          for key,vec in dict.iteritems():
              kaldi_io.write_vec_flt(f, vec, key=key)
     """
+    assert(isinstance(v, np.ndarray))
+    assert(v.dtype == np.int32)
     fd = open_or_fd(file_or_fd, mode='wb')
     if sys.version_info[0] == 3: assert(fd.mode == 'wb')
     try:
@@ -301,6 +305,7 @@ def write_vec_flt(file_or_fd, v, key=''):
          for key,vec in dict.iteritems():
              kaldi_io.write_vec_flt(f, vec, key=key)
     """
+    assert(isinstance(v, np.ndarray))
     fd = open_or_fd(file_or_fd, mode='wb')
     if sys.version_info[0] == 3: assert(fd.mode == 'wb')
     try:
@@ -470,6 +475,8 @@ def write_mat(file_or_fd, m, key=''):
          for key,mat in dict.iteritems():
              kaldi_io.write_mat(f, mat, key=key)
     """
+    assert(isinstance(m, np.ndarray))
+    assert(len(m.shape) == 2), "'m' has to be 2d matrix!"
     fd = open_or_fd(file_or_fd, mode='wb')
     if sys.version_info[0] == 3: assert(fd.mode == 'wb')
     try:
