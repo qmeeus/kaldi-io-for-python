@@ -345,11 +345,15 @@ def read_mat_scp(file_or_fd):
     fd = open_or_fd(file_or_fd)
     try:
         for line in fd:
-            (key,rxfile) = line.decode().split(' ')
-            (rxfile,range) = _get_mat_scp_range(rxfile)
+            (key, rxfile) = line.decode().split(' ')
+            (rxfile, range_slice) = _strip_mat_range(rxfile)
+
+            # TODO, this reads whole file, and then selects the range.
+            # A faster solution would be to change API of read_mat() and load just the frames we need...
             mat = read_mat(rxfile)
-            if range is not None:
-                mat = (mat[range]).copy()
+            if range is not None: mat = (mat[range_slice]).copy() # apply the range_slice,
+            #
+
             yield key, mat
     finally:
         if fd is not file_or_fd : fd.close()
@@ -376,31 +380,42 @@ def read_mat_ark(file_or_fd):
     finally:
         if fd is not file_or_fd : fd.close()
 
-def _get_mat_scp_range(rxfile):
-    """ (stripped_rxfile, range) = _get_mat_scp_range(rxfile)
-    Returns (rxfile, None) if rxfile does not contain a matrix range. Otherwise a tuple containing the stripped rxfile
-    and a tuple of slice objects is returned
-    rxfile: file descriptor for an ark file that optionally contains an offset or/and a matrix range
+def _strip_mat_range(rxfile_with_range):
+    """ (stripped_rxfile, range) = _strip_mat_range(rxfile)
+
+    Returns (rxfile, None) if rxfile does not contain a matrix range.
+    Otherwise a tuple containing the stripped rxfile and a tuple of slice objects is returned.
+
+    "/some/dir/feats.ark:0" -> ("/some/dir/feats.ark:0", None)
+    "/some/dir/feats.ark:0[10:19]" -> ("/some/dir/feats.ark:0", slice(10,19))
+    "/some/dir/feats.ark:0[10:19,0:12]" -> ("/some/dir/feats.ark:0", (slice(10,19),slice(0,12)))
+    "/some/dir/feats.ark:0[:,0:12]" -> ("/some/dir/feats.ark:0", (slice(None,None),slice(0,12)))
+
+    rxfile: file descriptor for an ark file that optionally contains an offset or/and a matrix range.
+
+    For info see: "Table I/O (with ranges)" in https://kaldi-asr.org/doc/io_tut.html
     """
-    search_res = re.search('(.+)(?:\[((?:(?:[0-9]+:[0-9]+)(?:,(?:[0-9]+:[0-9]+)?)?)|(?:,[0-9]+:[0-9]+))]\s*)', rxfile)
-    if search_res is not None:
-        range_split = search_res.groups()
-        if len(range_split) > 2:
-            raise BadInputFormat('Filename "%s" contains more than one matrix range specifier or the range specifier is '
-                                                     'not at the end of the filename.' % rxfile)
-        if len(range_split) == 2:
-            range = []
-            (rxfile, range_str) = range_split
-            ranges = range_str.split(',', 1)
-            for drange in ranges:
-                indices = drange.split(':', 1)
-                if len(indices) == 2:
-                    # +1 because the second index is inclusive in kaldi but exclusive in python and numpy
-                    range.append(slice(int(indices[0]), 1 + int(indices[1])))
-                else:
-                    range.append(slice(None))
-            return rxfile, tuple(range)
-    return rxfile, None
+
+    # search for the form: ...rxfile...[...range...]
+    search_res = re.search('(.+)\[(.+)\]', rxfile_with_range)
+
+    if search_res == None:
+        # 'rxfile_with_range' HAD NO RANGE "[...]" !!!
+        return (rxfile_with_range, None)
+
+    assert(len(search_res.groups()) == 2)
+    rxfile, range_str = search_res.groups() # rxfile = "/some/dir/feats.ark:0", range_str = "10:19,0:12"
+
+    slice_arr = []
+    for r in range_str.split(','): # "10:19,0:12" -> ['10:19', '0:12']
+        s1, s2 = r.split(':') # ':' -> ['', '']
+        i1 = int(s1) if s1 else None
+        i2 = int(s2) if s2 else None
+        slice_arr.append(slice(i1,i2))
+
+    assert(len(slice_arr) > 0)
+    return (rxfile, tuple(slice_arr))
+
 
 def read_mat(file_or_fd):
     """ [mat] = read_mat(file_or_fd)
