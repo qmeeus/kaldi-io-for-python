@@ -596,6 +596,56 @@ def read_post(file_or_fd):
     if fd is not file_or_fd: fd.close()
     return ans
 
+def write_post(file_or_fd, p, key=''):
+    """ write_post(f, p, key='')
+     Write a binary kaldi integer vector to filename or stream.
+     Arguments:
+     file_or_fd : filename or opened file descriptor for writing,
+     p : the posterior to be stored,
+     key (optional) : used for writing ark-file, the utterance-id gets written before the posterior.
+
+     Example of writing single vector:
+     kaldi_io.write_post(filename, post)
+
+     Example of writing arkfile:
+     with open(ark_file,'w') as f:
+         for key, post in dict.iteritems():
+             kaldi_io.write_post(f, post, key=key)
+
+     Write single kaldi 'Posterior' in binary format.
+
+     The 'Posterior' is C++ type 'vector<vector<tuple<int,float> > >',
+     the outer-vector is usually time axis, inner-vector are the records
+     at given time,    and the tuple is composed of an 'index' (integer)
+     and a 'float-value'. The 'float-value' can represent a probability
+     or any other numeric value.
+
+    """
+    assert(isinstance(p, list)), str(type(p))
+    fd = open_or_fd(file_or_fd, mode='wb')
+    if sys.version_info[0] == 3:
+        assert(fd.mode == 'wb')
+    try:
+        if key != '':
+            fd.write((key+' ').encode("latin1"))  # ark-files have keys (utterance-id),
+        fd.write('\0B'.encode())  # we write binary!
+        fd.write('\4'.encode())  # int32 type,
+        fd.write(struct.pack(np.dtype('int32').char, len(p)))  # outer vec size
+        inner_vec_size = None
+        for inner_arr in p:
+            inner_arr_len = len(inner_arr)
+            inner_vec_size = inner_arr_len if inner_vec_size is None else inner_vec_size
+            assert inner_arr_len == inner_vec_size, str((key, inner_arr_len, inner_vec_size))
+            fd.write('\4'.encode())  # int32 type,
+            fd.write(struct.pack(np.dtype('int32').char, inner_vec_size))  # inner vec size
+            for idx, pv in inner_arr:
+                fd.write(struct.pack(np.dtype('int8').char, 4))  # size_idx
+                fd.write(struct.pack(np.dtype('int32').char, idx))
+                fd.write(struct.pack(np.dtype('int8').char, 4))  # size_post
+                fd.write(struct.pack(np.dtype('float32').char, pv))
+    finally:
+        if fd is not file_or_fd:
+            fd.close()
 
 #################################################
 # Kaldi Confusion Network bin begin/end times,
