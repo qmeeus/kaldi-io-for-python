@@ -351,7 +351,7 @@ def read_mat_scp(file_or_fd):
             # TODO, this reads whole file, and then selects the range.
             # A faster solution would be to change API of read_mat() and load just the frames we need...
             mat = read_mat(rxfile)
-            if range is not None: mat = (mat[range_slice]).copy() # apply the range_slice,
+            if range_slice is not None: mat = (mat[range_slice]).copy() # apply the range_slice,
             #
 
             yield key, mat
